@@ -85,7 +85,7 @@
     <div class="keys">
       <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동 &nbsp; 마우스 둘러보기 &nbsp; <kbd>클릭</kbd> 조사 &nbsp; <kbd>Shift</kbd> 달리기<br>
       <kbd>F</kbd> 손전등 &nbsp; <kbd>T</kbd> 지도 &nbsp; <kbd>R</kbd> 캐비닛에 숨기 &nbsp; <kbd>I</kbd> 소지품 &nbsp; <kbd>H</kbd> 힌트 (두 번 = 자세히) &nbsp; <kbd>Esc</kbd> 일시정지<br>
-      🎧 이어폰 권장 · PC 권장 · 삐에로가 오면 <kbd>F</kbd>로 불을 끄거나 <kbd>R</kbd>로 캐비닛에 숨자
+      🎧 이어폰 권장 · 삐에로가 오면 <kbd>F</kbd>로 불을 끄거나 <kbd>R</kbd>로 캐비닛에 숨자
     </div>
     <button class="btn" id="startBtn">정문으로 걸어간다</button>
   </div>
@@ -517,7 +517,7 @@ function hint() {
   const H = HINTS[S.chapter](); if (!H) return;
   const now = performance.now();
   const detailed = now - S.hintAt < 8000; S.hintAt = detailed ? 0 : now;
-  say('💡 ' + (detailed ? H[1] : H[0] + '<br><span style="font-size:12px;color:#8a9">(H를 한 번 더 누르면 자세한 힌트)</span>'), detailed ? 7 : 5);
+  say('💡 ' + (detailed ? H[1] : H[0] + '<br><span style="font-size:12px;color:#8a9">(💡 힌트를 한 번 더 누르면 자세한 힌트)</span>'), detailed ? 7 : 5);
 }
 
 // figure (shadow patient)
@@ -1837,7 +1837,7 @@ function scooterMesh() { const g = new THREE.Group(); const col = [0x2ab0ff, 0xf
   sp(g, 0.025, new THREE.MeshBasicMaterial({ color: 0xfff0c0 }), 0, 0.9, -0.47); return g; }
 function placeScooter(x, z, ry) { const g = scooterMesh(); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g); const S0 = { g, x, z }; const hb = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.1, 0.9), M.invisible); hb.position.y = 0.55; g.add(hb); hb.userData.label = '킥보드 (타기) · Q 내리기'; hb.userData.fn = () => rideScooter(S0); hb.userData.needLight = false; interactables.push(hb); SCOOTS.push(S0); K['scoot' + SCOOTS.length] = g; return S0; }
 function buildScooters() { SCOOTS.length = 0; [[8, 51, 0.4], [-4, 33, 0.2], [12, 6, 1.0], [15.5, 21, -0.5], [-27, 3, 0.3], [-33, -6, 1.2], [-8, -21, 0.0], [8, -32, -0.6], [13, -16, 0.4], [42, 8, 0.8], [-12, 22, 2.0]].forEach(([x, z, r]) => placeScooter(x, z, r)); }
-function rideScooter(S0) { if (S.scoot || RIDE.on || S.hidden) return; S.scoot = S0; S0.g.children.forEach(c => { if (c.material === M.invisible) c.visible = false; }); SFX.click(); say('킥보드에 올라탔다. <b>Shift</b>로 더 빨리 · <b>Q</b>로 내리기.', 3); }
+function rideScooter(S0) { if (S.scoot || RIDE.on || S.hidden) return; S.scoot = S0; S0.g.children.forEach(c => { if (c.material === M.invisible) c.visible = false; }); SFX.click(); say('킥보드에 올라탔다. <b>Shift</b>(모바일은 끝까지 밀기)로 더 빨리 · <b>Q</b> / 🛴 버튼으로 내리기.', 3); }
 function dropScooter() { const S0 = S.scoot; if (!S0) return; S.scoot = null; S0.g.children.forEach(c => { if (c.material === M.invisible) c.visible = true; }); S0.g.position.set(player.x - Math.sin(yaw) * 0.6, player.h, player.z - Math.cos(yaw) * 0.6); SFX.click(); }
 addEventListener('keydown', e => { if (e.code === 'KeyQ' && S.scoot && !S.modal) { dropScooter(); say('킥보드에서 내렸다.', 1.5); } });
 function scooterTick(dt) { const S0 = S.scoot; if (!S0) return; S0.g.position.set(player.x - Math.sin(yaw) * 0.25, player.h, player.z - Math.cos(yaw) * 0.25); S0.g.rotation.y = yaw; if (RIDE.on || S.hidden) dropScooter(); }
@@ -2126,10 +2126,10 @@ function clownCaught() { CL.on = false; CL.caught++; K.clown.userData.walk.off =
 // ---------- hiding (R) ----------
 function hideIn(H0) { if (S.hidden) return hideOut(); if (RIDE.on) return; S.hidden = H0; CL.seenHide = CL.on && CL.seen; CL.hideWait = 0; S.hidePrev = { x: player.x, z: player.z, h: player.h, yaw }; S.lightWas = S.lightOn; S.lightOn = false; S.lockMove = true; SFX.creak();
   tween(0.3, e => H0.door.rotation.y = -1.2 * Math.sin(e * Math.PI)); player.x = H0.x; player.z = H0.z; yaw = H0.ry + Math.PI; pitch = 0; $('hideOv').style.display = 'block';
-  say('캐비닛 안으로 들어가 문을 닫았다. 좁은 틈으로 밖이 보인다. (<b>R</b> 나가기)', 3); }
+  say('캐비닛 안으로 들어가 문을 닫았다. 좁은 틈으로 밖이 보인다. (<b>R</b> / 🙈 나가기)', 3); }
 function hideOut() { const H0 = S.hidden; if (!H0) return; S.hidden = null; SFX.creak(); tween(0.3, e => H0.door.rotation.y = -1.2 * Math.sin(e * Math.PI)); player.x = H0.fx; player.z = H0.fz; S.lockMove = false; $('hideOv').style.display = 'none'; S.lightOn = S.lightWas; }
-addEventListener('keydown', e => { if (e.code !== 'KeyR' || !S.started || S.modal || S.escaped) return; if (S.hidden) return hideOut(); let best = null, bd = 1.9; HIDES.forEach(H0 => { const d = Math.hypot(player.x - H0.fx, player.z - H0.fz); if (d < bd && Math.abs(player.h - H0.y) < 1) { bd = d; best = H0; } }); if (best) hideIn(best); else say('근처에 숨을 캐비닛이 없다. (청소도구함 · 공구함 앞에서 <b>R</b>)', 2.5); });
-(function () { const ov = document.createElement('div'); ov.id = 'hideOv'; ov.style.cssText = 'position:fixed;inset:0;z-index:4;display:none;pointer-events:none;background:repeating-linear-gradient(180deg,#000 0 22px,rgba(0,0,0,.25) 22px 30px),radial-gradient(ellipse at center,transparent 30%,#000 75%);'; ov.innerHTML = '<div style="position:absolute;bottom:22%;width:100%;text-align:center;color:#aaa;font-size:13px">캐비닛 안 · R 나가기</div>'; document.body.appendChild(ov); })();
+addEventListener('keydown', e => { if (e.code !== 'KeyR' || !S.started || S.modal || S.escaped) return; if (S.hidden) return hideOut(); let best = null, bd = 1.9; HIDES.forEach(H0 => { const d = Math.hypot(player.x - H0.fx, player.z - H0.fz); if (d < bd && Math.abs(player.h - H0.y) < 1) { bd = d; best = H0; } }); if (best) hideIn(best); else say('근처에 숨을 캐비닛이 없다. (청소도구함 · 공구함 앞에서 <b>R</b> / 🙈)', 2.5); });
+(function () { const ov = document.createElement('div'); ov.id = 'hideOv'; ov.style.cssText = 'position:fixed;inset:0;z-index:4;display:none;pointer-events:none;background:repeating-linear-gradient(180deg,#000 0 22px,rgba(0,0,0,.25) 22px 30px),radial-gradient(ellipse at center,transparent 30%,#000 75%);'; ov.innerHTML = '<div style="position:absolute;bottom:22%;width:100%;text-align:center;color:#aaa;font-size:13px">캐비닛 안 · R 또는 🙈 버튼으로 나가기</div>'; document.body.appendChild(ov); })();
 // ---------- ambience / place names ----------
 function placeName() { const x = player.x, z = player.z; if (FW.on) return '관람차 하트 곤돌라'; if (player.h > 10) return RIDE.on ? '열기구 위' : '낙원타워 전망대'; if (RIDE.on) return '후룸라이드'; if (x > 44.6 && x < 47.6 && z > -6.6 && z < -3.6) return '포토부스'; if (x > 40 && x < 54 && z > 14 && z < 34) return '토이상점';
   if (z > 46) return '주차장 · 정문 밖'; if (x > 8 && x < 13 && z > 43) return '매표소'; if (x > -20 && x < -12 && z > 33 && z < 41) return '안내소';
@@ -2211,7 +2211,7 @@ function drawBigMap() { const cv = $('bigCv'), base = mapBase(); const H0 = Math
   #bigmap h3{color:#ffd0e0;margin:0 0 10px;font-weight:800;letter-spacing:4px}#bigmap p{color:#a89ab0;font-size:13px;margin:10px 0 0}#bigCv{border:2px solid rgba(255,180,220,.35);border-radius:8px;box-shadow:0 0 40px #000}`; document.head.appendChild(st);
   const cv = document.createElement('canvas'); cv.id = 'mini'; cv.width = 340; cv.height = 340; document.body.appendChild(cv); cv.onclick = e => { e.stopPropagation(); if (S.started) toggleMap(true); };
   const tip = document.createElement('div'); tip.id = 'miniTip'; tip.textContent = 'T · 지도 보기'; document.body.appendChild(tip);
-  const bm = document.createElement('div'); bm.id = 'bigmap'; bm.innerHTML = '<h3>낙원랜드 안내도</h3><canvas id="bigCv"></canvas><p>빨간 화살표가 내 위치와 바라보는 방향 · T 또는 클릭하면 닫힘</p>'; document.body.appendChild(bm); bm.onclick = e => { e.stopPropagation(); toggleMap(false); };
+  const bm = document.createElement('div'); bm.id = 'bigmap'; bm.innerHTML = '<h3>낙원랜드 안내도</h3><canvas id="bigCv"></canvas><p>빨간 화살표가 내 위치와 바라보는 방향 · T, ✕ 또는 아무 데나 누르면 닫힘</p>'; document.body.appendChild(bm); bm.onclick = e => { e.stopPropagation(); toggleMap(false); };
   addEventListener('keydown', e => { if (e.code === 'KeyT' && S.started && !S.modal) toggleMap(); else if (e.code === 'Escape' && mapOpen) toggleMap(false); });
   setInterval(() => { const show = S.started && !S.escaped; $('mini').style.display = $('miniTip').style.display = show ? 'block' : 'none'; if (show) drawMinimap(); if (mapOpen) drawBigMap(); }, 80); })();
 // ---------- sky ----------
@@ -2327,35 +2327,47 @@ window.MOBILE_KEYS=[["KeyQ", "🛴", "킥보드", "S.scoot"]];
   #mobStick{position:absolute;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;border:2px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);display:none}
   #mobKnob{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(230,230,230,.22);border:1px solid rgba(255,255,255,.3)}
   #mobHint{position:absolute;left:calc(26px + env(safe-area-inset-left));bottom:calc(24px + env(safe-area-inset-bottom));color:rgba(255,255,255,.28);font:600 11px 'Malgun Gothic',sans-serif;transition:opacity 1s}
-  #mobBtns{position:absolute;right:calc(10px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column-reverse;gap:9px;pointer-events:none}
-  .mb{pointer-events:auto;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(10,10,14,.35);color:#eee;font-size:19px;display:flex;align-items:center;justify-content:center;touch-action:none;-webkit-tap-highlight-color:transparent;opacity:.75}
+  #mobBtns{position:absolute;right:calc(10px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column-reverse;flex-wrap:wrap-reverse;align-content:flex-end;max-height:calc(100% - 175px - env(safe-area-inset-top));gap:9px;pointer-events:none}
+  .mb{pointer-events:auto;position:relative;width:52px;height:52px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(10,10,14,.45);color:#eee;font-size:21px;display:flex;align-items:center;justify-content:center;touch-action:none;-webkit-tap-highlight-color:transparent;opacity:.85}
+  .mb small{position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);font:700 9px 'Malgun Gothic',sans-serif;color:#ddd;text-shadow:0 0 3px #000;white-space:nowrap;pointer-events:none}
   .mb.act{background:rgba(200,160,60,.5);border-color:#ffd070;opacity:1}
+  .mb.hot{background:rgba(150,40,40,.6);border-color:#ff8a8a;opacity:1;animation:mbPulse 1s infinite}
+  @keyframes mbPulse{50%{box-shadow:0 0 0 6px rgba(255,90,90,.25)}}
   .mb:active{transform:scale(.9)}
-  #mobRot{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:60;background:rgba(0,0,0,.85);color:#eee;padding:16px 20px;border-radius:12px;font:600 14px 'Malgun Gothic',sans-serif;text-align:center;display:none;pointer-events:auto}
-  body.mobile #mini{width:96px!important;height:96px!important;right:calc(10px + env(safe-area-inset-right))!important;bottom:auto!important;top:52px!important;opacity:.7!important}
+  body.mobile #mini{width:96px!important;height:96px!important;right:calc(10px + env(safe-area-inset-right))!important;bottom:auto!important;top:calc(56px + env(safe-area-inset-top))!important;opacity:.75!important}
   body.mobile #miniTip{display:none!important}
-  body.mobile #hud{font-size:11px!important;max-width:46vw;opacity:.8}
-  body.mobile #hintBtn{padding:4px 9px!important;font-size:12px!important;opacity:.75}
+  body.mobile #hud{font-size:11px!important;max-width:46vw;opacity:.8;top:calc(10px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left))}
+  body.mobile #topBtns{top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right))}
+  body.mobile #topBtns button{padding:7px 9px;font-size:12px;opacity:.85}
   body.mobile #inv{bottom:auto!important;top:calc(10px + env(safe-area-inset-top));transform:translateX(-50%) scale(.75)!important;transform-origin:top center}
   body.mobile #msg{bottom:auto!important;top:20%!important;max-width:min(520px,66vw)!important;font-size:13px!important}
   body.mobile #label{font-size:12px}
+  body.mobile.portrait #hud{max-width:calc(100vw - 215px)}
+  body.mobile.portrait #inv{top:calc(104px + env(safe-area-inset-top));max-width:calc(100vw - 130px);flex-wrap:wrap;justify-content:center;left:calc(50% - 50px);transform:translateX(-50%) scale(.72)!important}
+  body.mobile.portrait #msg{top:auto!important;bottom:calc(50% + 30px)!important;max-width:88vw!important}
+  body.mobile.portrait #mobBtns{max-height:calc(100% - 190px - env(safe-area-inset-top))}
+  body.mobile #start .keys kbd{display:none}
+  body.mobile #start .keys{font-size:0;line-height:0;margin-bottom:18px}
+  body.mobile #start .keys .mobline{font-size:13px;line-height:1.9;margin-top:0}
   body.mobile .keys .mobline{display:block}
   .keys .mobline{display:none;margin-top:8px;color:#ffd890}`;
   document.head.appendChild(st);
   const vp = document.querySelector('meta[name=viewport]'); if (vp) vp.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
-  document.querySelectorAll('#start .keys').forEach(k => { const d = document.createElement('div'); d.className = 'mobline'; d.innerHTML = '📱 모바일: <b>왼쪽</b> 화면을 누른 채 끌면 이동 (끝까지 = 달리기) · <b>오른쪽</b>을 끌면 둘러보기 · 물건을 <b>톡</b> 치면 조사'; k.appendChild(d); });
+  document.querySelectorAll('#start .keys').forEach(k => { const d = document.createElement('div'); d.className = 'mobline'; d.innerHTML = '📱 <b>왼쪽</b>을 누른 채 끌면 이동 (끝까지 = 달리기) · <b>오른쪽</b>을 끌면 둘러보기 · 물건을 <b>톡</b> 치면 조사<br>오른쪽 버튼: 🔦 손전등 · 🙈 숨기 · 🗺️ 지도 · 🎒 소지품 · 위의 <b>🎮 조작키</b>로 언제든 다시 보기<br>가로 · 세로 모두 플레이할 수 있어요 · 🎧 이어폰 권장<br>삐에로가 오면 🔦 불을 끄거나 🙈 캐비닛에 숨자'; k.appendChild(d); });
   const root = document.createElement('div'); root.id = 'mob'; document.body.appendChild(root);
   root.innerHTML = '<div id="mobStick"><div id="mobKnob"></div></div><div id="mobHint">◀ 왼쪽을 끌어서 이동</div><div id="mobBtns"></div>';
-  const rot = document.createElement('div'); rot.id = 'mobRot'; rot.innerHTML = '📱 휴대폰을 <b>가로</b>로 돌리면 더 잘 보여요<br><span style="font-size:12px;color:#aaa">(탭해서 닫기)</span>'; document.body.appendChild(rot); rot.onclick = () => { rot.style.display = 'none'; rot.dataset.closed = 1; };
   const press = (code, down) => window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, key: code, bubbles: true }));
   const tapKey = code => { press(code, true); setTimeout(() => press(code, false), 60); };
-  // ---- small icon buttons (right edge)
+  // ---- icon buttons (right edge), each with a small label
   const btns = root.querySelector('#mobBtns'); const conds = [];
-  const mk = (icon, fn, cond) => { const b = document.createElement('div'); b.className = 'mb'; b.textContent = icon; b.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); fn(b); }, { passive: false }); b.addEventListener('click', e => { e.stopPropagation(); if (!on) fn(b); }); btns.appendChild(b); if (cond) conds.push([b, cond]); return b; };
-  const lightB = mk('🔦', () => tapKey('KeyF'));
-  CFG.forEach(([code, icon, , cond]) => mk(icon, () => tapKey(code), cond ? new Function('S', 'return ' + cond) : null));
-  mk('🎒', () => tapKey('KeyI'));
-  mk('⛶', () => { const d = document.documentElement; try { if (!document.fullscreenElement && !document.webkitFullscreenElement) { (d.requestFullscreen || d.webkitRequestFullscreen).call(d); screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } else (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {} });
+  const mk = (icon, fn, cond, label) => { const b = document.createElement('div'); b.className = 'mb'; b.innerHTML = icon + (label ? `<small>${label}</small>` : ''); b.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); fn(b); }, { passive: false }); b.addEventListener('click', e => { e.stopPropagation(); if (!on) fn(b); }); btns.appendChild(b); if (cond) conds.push([b, cond]); return b; };
+  const lightB = mk('🔦', () => tapKey('KeyF'), null, '손전등');
+  CFG.forEach(([code, icon, label, cond]) => mk(icon, () => tapKey(code), cond ? new Function('S', 'return ' + cond) : null, '내리기'));
+  const nearHide = () => typeof HIDES !== 'undefined' && HIDES.some(H0 => Math.hypot(player.x - H0.fx, player.z - H0.fz) < 1.9 && Math.abs(player.h - H0.y) < 1);
+  const hideB = mk('🙈', () => tapKey('KeyR'), s => !!s.hidden || nearHide(), '숨기');
+  mk('🗺️', () => { if (typeof toggleMap === 'function' && S.started) toggleMap(); }, null, '지도');
+  mk('🎒', () => tapKey('KeyI'), null, '소지품');
+  mk('⛶', () => { const d = document.documentElement; try { if (!document.fullscreenElement && !document.webkitFullscreenElement) { (d.requestFullscreen || d.webkitRequestFullscreen).call(d); } else (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {} }, null, '전체화면');
   // ---- touches on the 3D view: left side = floating stick, right side = look, quick tap = 조사
   const cv = document.querySelector('canvas'); const stick = root.querySelector('#mobStick'), knob = root.querySelector('#mobKnob'), hintEl = root.querySelector('#mobHint');
   const isView = el => el === cv || (el && el.id && ['vignette', 'grain', 'cross', 'label', 'blood', 'flash', 'fade', 'lightning', 'hideOv'].includes(el.id));
@@ -2364,7 +2376,7 @@ window.MOBILE_KEYS=[["KeyQ", "🛴", "킥보드", "S.scoot"]];
   const stopStick = () => { sid = null; stick.style.display = 'none'; knob.style.transform = ''; keys.KeyW = keys.KeyS = keys.KeyA = keys.KeyD = keys.ShiftLeft = false; };
   window.addEventListener('touchstart', e => { if (!on) enable(); if (!isView(e.target)) return; e.stopPropagation(); e.preventDefault(); if (!S.started || S.modal) return; S.fallback = true; S.paused = false;
     for (const t of e.changedTouches) { const o = { x: t.clientX, y: t.clientY, x0: t.clientX, y0: t.clientY, moved: 0, t: performance.now(), stick: false };
-      if (sid === null && t.clientX < innerWidth * 0.42 && t.clientY > innerHeight * 0.22) { o.stick = true; sid = t.identifier; sx = t.clientX; sy = t.clientY; stick.style.left = sx + 'px'; stick.style.top = sy + 'px'; stick.style.display = 'block'; hintEl.style.opacity = 0; }
+      const portrait = innerHeight > innerWidth; if (sid === null && t.clientX < innerWidth * (portrait ? 0.5 : 0.42) && t.clientY > innerHeight * (portrait ? 0.3 : 0.22)) { o.stick = true; sid = t.identifier; sx = t.clientX; sy = t.clientY; stick.style.left = sx + 'px'; stick.style.top = sy + 'px'; stick.style.display = 'block'; hintEl.style.opacity = 0; }
       T.set(t.identifier, o); } }, { capture: true, passive: false });
   window.addEventListener('touchmove', e => { let hit = false; for (const t of e.changedTouches) { const o = T.get(t.identifier); if (!o) continue; hit = true; const dx = t.clientX - o.x, dy = t.clientY - o.y; o.moved += Math.abs(dx) + Math.abs(dy); o.x = t.clientX; o.y = t.clientY;
       if (o.stick) { let ddx = t.clientX - sx, ddy = t.clientY - sy; const d = Math.hypot(ddx, ddy); if (d > R) { ddx *= R / d; ddy *= R / d; } knob.style.transform = `translate(${ddx}px,${ddy}px)`; if (o.moved > 6) setDir(ddx, ddy); }
@@ -2374,10 +2386,99 @@ window.MOBILE_KEYS=[["KeyQ", "🛴", "킥보드", "S.scoot"]];
       if (o.moved < 12 && performance.now() - o.t < 400 && S.started && !S.modal && typeof doInteract === 'function') doInteract(); }
     if (hit) { e.stopPropagation(); e.preventDefault(); } };
   window.addEventListener('touchend', endT, { capture: true, passive: false }); window.addEventListener('touchcancel', endT, { capture: true, passive: false });
-  function enable() { if (on) return; on = true; document.body.classList.add('mobile'); try { if (typeof renderer !== 'undefined') { renderer.setPixelRatio(Math.min(devicePixelRatio, 1.3)); renderer.setSize(innerWidth, innerHeight); } } catch (e) {} checkRot(); }
-  const checkRot = () => { rot.style.display = on && innerHeight > innerWidth * 1.1 && !rot.dataset.closed ? 'block' : 'none'; };
-  addEventListener('resize', checkRot); if (coarse) enable();
-  setInterval(() => { if (!on) return; const play = S.started && !S.escaped && !S.modal; root.style.visibility = play ? 'visible' : 'hidden'; if (!play && sid !== null) stopStick(); lightB.classList.toggle('act', !!S.lightOn); conds.forEach(([b, f]) => { let v = false; try { v = f(S); } catch (e) {} b.style.display = v ? 'flex' : 'none'; }); }, 250);
+  function enable() { if (on) return; on = true; document.body.classList.add('mobile'); try { if (typeof renderer !== 'undefined') { renderer.setPixelRatio(Math.min(devicePixelRatio, 1.3)); renderer.setSize(innerWidth, innerHeight); } } catch (e) {} }
+  if (coarse) enable();
+  setInterval(() => { if (!on) return; const play = S.started && !S.escaped && !S.modal && !S.paused; root.style.visibility = play ? 'visible' : 'hidden'; if (!play && sid !== null) stopStick(); lightB.classList.toggle('act', !!S.lightOn); conds.forEach(([b, f]) => { let v = false; try { v = f(S); } catch (e) {} b.style.display = v ? 'flex' : 'none'; });
+    hideB.classList.toggle('hot', !!S.hidden); const hl = hideB.querySelector('small'); if (hl) hl.textContent = S.hidden ? '나가기' : '숨기'; }, 250);
+})();
+// ===== 조작키 보기 · 일시정지 · 팝업 닫기(✕ / 바깥 누르기) · 가로/세로 화면 =====
+(function () {
+  const st = document.createElement('style');
+  st.textContent = `
+  #topBtns{position:fixed;top:14px;right:16px;display:flex;gap:6px;z-index:6}
+  #topBtns button{position:static;background:rgba(20,22,22,.7);color:#cfd8d2;border:1px solid rgba(255,255,255,.15);padding:7px 12px;border-radius:6px;font-family:inherit;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  #topBtns button:active{transform:scale(.94)}
+  .xBtn{position:absolute;top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(30,30,30,.85);color:#eee;font:700 22px/1 'Malgun Gothic',sans-serif;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+  .xBtn:active{transform:scale(.9)}
+  #bigmap{padding:56px 10px 10px}
+  #bigCv{max-width:96vw;max-height:calc(100vh - 140px);object-fit:contain}
+  #help .helpBox{background:#121414;border:2px solid #343a3a;border-radius:12px;padding:22px 20px;width:560px;max-width:92vw;text-align:left;line-height:1.7;font-size:14px;color:#cfd6d2}
+  #help h3{text-align:center;font-size:18px;margin-bottom:12px;color:#ffd0e0;letter-spacing:2px}
+  #help h4{font-size:14px;color:#ffd890;margin:12px 0 6px}
+  #help table{width:100%;border-collapse:collapse}
+  #help td{padding:4px 6px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:top}
+  #help td:first-child{white-space:nowrap;width:1%;color:#fff;font-weight:700}
+  #help kbd{display:inline-block;min-width:22px;padding:0 6px;border:1px solid #555;border-radius:4px;color:#ddd;font-family:inherit;font-size:12px;text-align:center}
+  #help .tip{font-size:12px;color:#8a948f;margin-top:12px;text-align:center}
+  @media (max-height:520px){ .card{padding:16px 18px} .card h1{font-size:30px} .story{font-size:14px;margin-bottom:12px} .keys{line-height:1.8;margin-bottom:12px} }
+  @media (max-width:480px){ .card{padding:22px 14px} .card h1{font-size:32px} .story{font-size:14px} #keypad .pad{width:min(280px,90vw)} #note .paper{padding:22px 18px;font-size:15px} }`;
+  document.head.appendChild(st);
+
+  // top-right buttons: 🎮 조작키 · ⏸ 일시정지 · 💡 힌트
+  const bar = document.createElement('div'); bar.id = 'topBtns'; document.body.appendChild(bar);
+  const helpBtn = document.createElement('button'); helpBtn.id = 'helpBtn'; helpBtn.textContent = '🎮 조작키';
+  const pauseBtn = document.createElement('button'); pauseBtn.id = 'pauseBtn'; pauseBtn.textContent = '⏸ 멈춤';
+  const hb = $('hintBtn'); hb.textContent = '💡 힌트'; bar.append(helpBtn, pauseBtn, hb);
+  const isMob = () => document.body.classList.contains('mobile');
+  const label = () => { const m = isMob(); helpBtn.textContent = m ? '🎮 조작키' : '🎮 조작키 (K)'; hb.textContent = m ? '💡 힌트' : '💡 힌트 (H)'; pauseBtn.title = '일시정지'; };
+  const press = (fn) => e => { e.preventDefault(); e.stopPropagation(); fn(); };
+  helpBtn.onclick = press(() => openHelp()); pauseBtn.onclick = press(() => pauseGame());
+
+  // help popup (a normal modal: closes with ✕, 닫기, Esc or tapping outside)
+  const help = document.createElement('div'); help.id = 'help'; help.className = 'overlay hidden';
+  help.innerHTML = '<div class="helpBox"><h3>🎮 조작키</h3><div id="helpBody"></div><button class="btn ghost close" id="helpClose" style="width:100%">닫기</button></div>';
+  document.body.appendChild(help);
+  const mobileHelp = `<h4>📱 터치 (휴대폰 · 태블릿)</h4><table>
+    <tr><td>왼쪽 화면 끌기</td><td>이동 · 끝까지 밀면 달리기</td></tr>
+    <tr><td>오른쪽 화면 끌기</td><td>둘러보기</td></tr>
+    <tr><td>화면 톡</td><td>가운데 점에 있는 물건 조사 · 사격장에선 발사</td></tr>
+    <tr><td>🔦</td><td>손전등 켜기/끄기</td></tr>
+    <tr><td>🙈</td><td>캐비닛에 숨기 / 나가기 (청소도구함 · 공구함 근처에서만 보여요)</td></tr>
+    <tr><td>🛴</td><td>킥보드에서 내리기 (탔을 때만 보여요)</td></tr>
+    <tr><td>🗺️</td><td>지도 (오른쪽 위 작은 지도를 눌러도 돼요)</td></tr>
+    <tr><td>🎒</td><td>소지품 · 아래쪽 아이템 칸을 누르면 하나씩 보기</td></tr>
+    <tr><td>⛶</td><td>전체화면</td></tr>
+    <tr><td>💡 · ⏸ · 🎮</td><td>힌트 (두 번 = 자세히) · 일시정지 · 이 화면</td></tr>
+    <tr><td>번호 · 조작반</td><td>화면의 버튼을 눌러 입력</td></tr>
+    <tr><td>창 닫기</td><td>오른쪽 위 ✕ 또는 창 바깥 빈 곳 누르기</td></tr></table>`;
+  const pcHelp = `<h4>⌨️ 키보드 · 마우스 (PC)</h4><table>
+    <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>이동 · <kbd>Shift</kbd> 달리기</td></tr>
+    <tr><td>마우스</td><td>둘러보기 · <kbd>클릭</kbd> 조사 / 발사</td></tr>
+    <tr><td><kbd>F</kbd></td><td>손전등</td></tr>
+    <tr><td><kbd>R</kbd></td><td>캐비닛에 숨기 / 나가기</td></tr>
+    <tr><td><kbd>Q</kbd></td><td>킥보드 내리기 · 미니게임 그만하기</td></tr>
+    <tr><td><kbd>T</kbd> · <kbd>I</kbd></td><td>지도 · 소지품</td></tr>
+    <tr><td><kbd>H</kbd></td><td>힌트 (두 번 = 자세히)</td></tr>
+    <tr><td><kbd>K</kbd></td><td>이 조작키 화면</td></tr>
+    <tr><td><kbd>Esc</kbd></td><td>일시정지 · 창 닫기</td></tr>
+    <tr><td>숫자 · <kbd>Enter</kbd></td><td>번호 자물쇠 입력</td></tr>
+    <tr><td>인형뽑기</td><td>방향키/WASD 이동 · <kbd>Space</kbd> 내리기</td></tr></table>`;
+  function openHelp() { if (S.modal) return; $('helpBody').innerHTML = (isMob() ? mobileHelp + pcHelp : pcHelp + mobileHelp) + '<div class="tip">삐에로가 오면 🔦 불을 끄거나 🙈 캐비닛에 숨자</div>'; openModal('help'); }
+  $('helpClose').onclick = e => { e.stopPropagation(); closeModal(); };
+  addEventListener('keydown', e => { if (e.code === 'KeyK' && S.started && !S.paused && !S.escaped) { if (S.modal === 'help') closeModal(); else if (!S.modal) openHelp(); } else if (e.key === 'Escape' && S.modal === 'help') closeModal(); });
+
+  // pause (works with and without mouse lock)
+  function pauseGame() { if (!S.started || S.escaped || S.modal) return; if (document.pointerLockElement) { document.exitPointerLock(); return; } S.paused = true; $('paused').classList.remove('hidden'); }
+  const pp = document.querySelector('#paused .card p'); if (pp) pp.textContent = '계속하기 · ✕ · 빈 곳을 누르면 다시 시작해요';
+  const resume = () => { $('paused').classList.add('hidden'); S.paused = false; lockPointer(); };
+  $('resumeBtn').onclick = e => { e.stopPropagation(); resume(); };
+
+  // ✕ button + tap outside for every popup that can be closed
+  const addX = (ov, close, inner) => { const x = document.createElement('button'); x.className = 'xBtn'; x.setAttribute('aria-label', '닫기'); x.textContent = '✕'; x.onclick = e => { e.preventDefault(); e.stopPropagation(); close(); }; ov.appendChild(x);
+    ov.addEventListener('click', e => { if (ov.classList.contains('hidden') || ov.style.display === 'none') return; const box = inner ? ov.querySelector(inner) : null; if (e.target === ov || (box && !box.contains(e.target) && e.target !== x)) { e.stopPropagation(); close(); } }); };
+  ['note', 'keypad', 'panel', 'help'].forEach(id => addX($(id), () => { if (S.modal === id) closeModal(); }));
+  addX($('paused'), resume, '.card');
+  const bm = $('bigmap'); if (bm) addX(bm, () => toggleMap(false));
+
+  // portrait / landscape: follow the phone, keep a sensible field of view
+  const BASE_FOV = 72, H_FOV = 2 * Math.atan(Math.tan(BASE_FOV * Math.PI / 360) * (16 / 9)); // horizontal view of a 16:9 screen
+  function fit() { const a = innerWidth / innerHeight; document.body.classList.toggle('portrait', a < 1);
+    let fov = BASE_FOV; if (a < 1.35) fov = Math.min(92, 2 * Math.atan(Math.tan(H_FOV / 2) / Math.max(a, 0.4) * 0.62) * 180 / Math.PI); fov = Math.max(BASE_FOV, fov);
+    camera.fov = fov; camera.aspect = a; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); label(); }
+  addEventListener('resize', fit); addEventListener('orientationchange', () => setTimeout(fit, 250)); if (screen.orientation) screen.orientation.addEventListener && screen.orientation.addEventListener('change', () => setTimeout(fit, 250));
+  try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+  fit(); setTimeout(fit, 500);
+  setInterval(() => { const show = S.started && !S.escaped; bar.style.display = show ? 'flex' : 'none'; label(); }, 300);
 })();
 
 /*/MOBILE*/
