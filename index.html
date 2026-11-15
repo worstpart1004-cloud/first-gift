@@ -64,6 +64,101 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<script>
+// ===== 오류 · 멈춤 알림창 =====
+// 게임 코드에서 오류가 나거나, 그래픽이 끊기거나, 화면이 멈추면 "어디서 / 무엇이" 문제인지 보여 준다.
+(function () {
+  const AREA = { tryBooth: '매표소 문 자물쇠', takeTicket: '자유이용권 발매기', tryTurnstile: '정문 회전식 입구', welcome: '입장 연출', openTrunk: '자동차 트렁크',
+    tryLost: '안내소 분실물 보관함', tryCaroPanel: '회전목마 조작반', caroStop: '회전목마 멈추기', tryHorse3: '회전목마 3번 말', tryOpsDoor: '범퍼카 운영실 문', trySafe: '운영실 금고',
+    tryFoodDoor: '낙원식당 문', tryRegister: '식당 금전등록기', tryStaffDoor: '직원휴게실 문', tryLocker: '직원휴게실 사물함', tryBalloonPanel: '열기구 운행 패널', boardBalloon: '열기구 탑승',
+    balloonRide: '열기구 비행', tryTowerBox: '전망대 보관함', tryVikPanel: '바이킹 조작반', tryFerrisPanel: '관람차 조작반', boardFerris: '관람차 탑승', tryShutter: '토이상점 셔터',
+    tryShoot: '사격장', shootOnce: '사격장 (발사)', endShoot: '사격장 (그만하기)', tryClaw: '인형뽑기', clawGrab: '인형뽑기 (집게)', clawTick: '인형뽑기 (집게 이동)', clawWin: '인형뽑기 (성공)',
+    tryEmGate: '정문 비상문', finale: '엔딩 장면', storyLines: '대사 장면', escape: '엔딩 화면', clownUpdate: '삐에로 추격', clownStart: '삐에로 등장', hideIn: '캐비닛 숨기', hideOut: '캐비닛 나오기',
+    rideScooter: '킥보드 타기', dropScooter: '킥보드 내리기', scooterTick: '킥보드 이동', doInteract: '물건 조사 (클릭/톡)', pick: '물건 조사 (조준)', hint: '힌트', showItems: '소지품',
+    keypad: '번호 자물쇠 창', padPress: '번호 자물쇠 입력', openPanel: '조작반 창', openModal: '팝업 창 열기', closeModal: '팝업 창 닫기', toggleMap: '지도', drawMinimap: '작은 지도', drawBigMap: '큰 지도',
+    toggleLight: '손전등', initAudio: '소리 (오디오)', tone: '소리 (효과음)', noise: '소리 (효과음)', buildWorld: '맵 불러오기', startCh1: '게임 시작 준비', loop: '매 프레임 화면 그리기' };
+  const st = document.createElement('style');
+  st.textContent = `#errBox{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.72);font-family:'Malgun Gothic','맑은 고딕',sans-serif}
+  #errBox .eb{width:min(540px,92vw);max-height:90vh;overflow:auto;background:#1a1212;border:2px solid #a83a3a;border-radius:12px;padding:20px 18px;color:#eee;box-shadow:0 10px 50px rgba(0,0,0,.8);position:relative}
+  #errBox h3{color:#ff8a8a;font-size:18px;margin:0 0 6px}#errBox .lead{font-size:14px;color:#ddd;line-height:1.6;margin-bottom:12px}
+  #errBox table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px}#errBox td{padding:5px 6px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top}
+  #errBox td:first-child{white-space:nowrap;width:1%;color:#ffb0b0;font-weight:700}
+  #errBox details{font-size:12px;color:#aaa;margin-bottom:12px}#errBox pre{white-space:pre-wrap;word-break:break-all;background:#0c0808;padding:8px;border-radius:6px;max-height:160px;overflow:auto;margin-top:6px}
+  #errBox .row{display:flex;gap:8px;flex-wrap:wrap}#errBox button{flex:1;min-width:120px;padding:11px 10px;border-radius:8px;border:1px solid #555;background:#2a2222;color:#eee;font:700 14px 'Malgun Gothic',sans-serif;cursor:pointer}
+  #errBox button.main{background:#6e1f1f;border-color:#a83a3a}#errBox .ok{font-size:12px;color:#8fe3a9;min-height:16px;margin-top:8px}
+  #errBox .x{position:absolute;top:8px;right:8px;flex:none;min-width:0;width:38px;height:38px;border-radius:50%;padding:0;font-size:18px}
+  #errBadge{position:fixed;left:calc(10px + env(safe-area-inset-left));bottom:calc(10px + env(safe-area-inset-bottom));z-index:199;display:none;background:#8a2020;color:#fff;border:1px solid #ff8a8a;border-radius:16px;padding:6px 12px;font:700 12px 'Malgun Gothic',sans-serif;cursor:pointer}`;
+  document.head.appendChild(st);
+  const box = document.createElement('div'); box.id = 'errBox'; box.innerHTML = '<div class="eb"><button class="x" data-a="close" aria-label="닫기">✕</button><h3 id="ebTitle"></h3><div class="lead" id="ebLead"></div><table id="ebTable"></table><details><summary>자세한 오류 내용 (만든 사람용)</summary><pre id="ebRaw"></pre></details><div class="row"><button data-a="copy">📋 오류 내용 복사</button><button data-a="close">계속하기</button><button class="main" data-a="reload">처음부터 다시</button></div><div class="ok" id="ebOk"></div></div>';
+  const badge = document.createElement('div'); badge.id = 'errBadge';
+  const mount = () => { document.body.appendChild(box); document.body.appendChild(badge); }; if (document.body) mount(); else addEventListener('DOMContentLoaded', mount);
+  const LOG = []; let shown = null, report = '';
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const txt = id => { const e = document.getElementById(id); return e ? e.textContent.trim() : ''; };
+  function where(stack, line) { const fns = []; String(stack || '').split('\n').forEach(l => { const m = l.match(/at (?:Object\.|HTMLDocument\.|Window\.)?([\w$]+)/) || l.match(/^([\w$]+)@/); if (m && !fns.includes(m[1]) && !/^(file|https?|eval|new|async|Array|Map|Set)$/.test(m[1])) fns.push(m[1]); });
+    const hit = fns.find(f => AREA[f]); return { area: hit ? AREA[hit] : '알 수 없는 곳', fn: hit || fns[0] || '', chain: fns.slice(0, 5).join(' ← '), line }; }
+  const KO = [[/Cannot read propert(y|ies) of (null|undefined)|is (null|undefined)|of undefined/i, '아직 준비되지 않은(없는) 물건을 쓰려고 했어요'], [/is not a function/i, '없는 기능을 실행하려고 했어요'], [/is not defined/i, '정의되지 않은 이름을 썼어요'],
+    [/Maximum call stack/i, '같은 동작이 끝없이 반복됐어요'], [/out of memory|allocation/i, '기기 메모리가 부족해요'], [/WebGL|context/i, '3D 그래픽 장치 문제'], [/AudioContext|audio/i, '소리 장치 문제'], [/QuotaExceeded|localStorage/i, '브라우저 저장 공간 문제']];
+  function show(kind, title, lead, info) {
+    if (!info.friendly) { const k = KO.find(([r]) => r.test(info.msg || '')); if (k) info.friendly = k[1] + ' — ' + info.msg; }
+    const key = kind + '|' + info.msg + '|' + info.line; let e = LOG.find(x => x.key === key);
+    if (e) e.count++; else { e = { key, kind, title, lead, info, count: 1, time: new Date() }; LOG.push(e); if (LOG.length > 20) LOG.shift(); }
+    try { localStorage.setItem('nakwonErrors', JSON.stringify(LOG.slice(-10).map(x => ({ t: x.time, kind: x.kind, msg: x.info.msg, where: x.info.area, fn: x.info.fn, line: x.info.line, n: x.count })))); } catch (er) {}
+    badge.textContent = '⚠️ 오류 ' + LOG.reduce((s, x) => s + x.count, 0) + '건 · 눌러서 보기'; badge.style.display = 'block';
+    if (box.style.display === 'flex' && shown !== e) return; // 이미 다른 오류를 보여 주는 중이면 배지만 갱신
+    if (e.count > 1 && shown === e) { document.getElementById('ebLead').innerHTML = lead + `<br><span style="color:#ffb0b0">같은 오류가 ${e.count}번 났어요.</span>`; return; }
+    if (e.count > 1 && box.style.display !== 'flex') return; // 같은 오류는 다시 띄우지 않음 (배지로 확인)
+    open(e);
+  }
+  function open(e) {
+    shown = e; const i = e.info, place = txt('place'), obj = txt('objective').replace(/^목표:\s*/, '');
+    document.getElementById('ebTitle').textContent = e.title;
+    document.getElementById('ebLead').innerHTML = e.lead + (e.count > 1 ? `<br><span style="color:#ffb0b0">같은 오류가 ${e.count}번 났어요.</span>` : '');
+    const st = (window.NK && NK.state) ? NK.state() : {};
+    const rows = [['어디서', esc(i.area) + (i.fn ? ` <span style="color:#888">(${esc(i.fn)})</span>` : '')], ['게임 위치', esc(place || '-')], ['그때 목표', esc(obj || '-')],
+      ['무엇이', esc(i.friendly || i.msg)], ['코드 위치', i.line ? `index.html ${i.line}번째 줄` + (i.col ? `, ${i.col}번째 글자` : '') : '-'], ['언제', e.time.toLocaleTimeString('ko-KR')]];
+    document.getElementById('ebTable').innerHTML = rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+    report = ['[낙원랜드 오류 보고]', '종류: ' + e.kind, '어디서: ' + i.area + (i.fn ? ' (' + i.fn + ')' : ''), '게임 위치: ' + place, '목표: ' + obj, '메시지: ' + i.msg, '코드 위치: index.html ' + (i.line || '?') + ':' + (i.col || '?'),
+      '호출 순서: ' + (i.chain || '-'), '진행 상황: ' + (st.progress || '-'), '화면: ' + innerWidth + 'x' + innerHeight + (st.mobile ? ' (모바일)' : ''), '브라우저: ' + navigator.userAgent, '시각: ' + e.time.toLocaleString('ko-KR'), '반복: ' + e.count + '번', '', i.stack || ''].join('\n');
+    document.getElementById('ebRaw').textContent = report; document.getElementById('ebOk').textContent = '';
+    box.style.display = 'flex'; try { if (document.pointerLockElement) document.exitPointerLock(); } catch (er) {}
+    try { if (window.NK && NK.pause) NK.pause(); } catch (er) {}
+  }
+  const close = () => { box.style.display = 'none'; shown = null; };
+  box.addEventListener('click', ev => { const a = ev.target.closest('[data-a]'); if (ev.target === box) return close(); if (!a) return; ev.stopPropagation();
+    if (a.dataset.a === 'close') close();
+    else if (a.dataset.a === 'reload') location.reload();
+    else if (a.dataset.a === 'copy') { const done = () => document.getElementById('ebOk').textContent = '복사했어요! 만든 사람에게 붙여 넣어 보내 주세요.';
+      const fb = () => { const ta = document.createElement('textarea'); ta.value = report; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (er) { document.getElementById('ebOk').textContent = '복사가 안 돼요. 아래 "자세한 오류 내용"을 길게 눌러 복사해 주세요.'; } ta.remove(); };
+      try { navigator.clipboard.writeText(report).then(done, fb); } catch (er) { fb(); } } });
+  ['touchstart', 'touchend', 'mousedown'].forEach(t => box.addEventListener(t, ev => ev.stopPropagation(), { passive: true }));
+  badge.onclick = ev => { ev.stopPropagation(); if (LOG.length) open(LOG[LOG.length - 1]); };
+  window.NK_ERR = { log: LOG, open: () => LOG.length && open(LOG[LOG.length - 1]) };
+
+  // ① 코드 오류
+  addEventListener('error', ev => {
+    if (ev.target && ev.target !== window && (ev.target.src || ev.target.href)) return; // 리소스 로딩 오류(이 게임은 외부 파일 없음)
+    const f = ev.filename || ''; if (f && !f.startsWith(location.href.split('#')[0].split('?')[0]) && !f.startsWith(location.origin)) return; // 브라우저 확장 프로그램 오류는 무시
+    const er = ev.error, w = where(er && er.stack, ev.lineno);
+    show('코드 오류', '⚠️ 게임에 문제가 생겼어요', '게임 안에서 오류가 났어요. <b>계속하기</b>로 이어서 해 보고, 계속 이상하면 <b>처음부터 다시</b>를 눌러 주세요.',
+      { msg: (er && er.message) || ev.message || '알 수 없는 오류', line: ev.lineno, col: ev.colno, stack: er && er.stack, area: w.area, fn: w.fn, chain: w.chain });
+  });
+  // ② 비동기 오류
+  addEventListener('unhandledrejection', ev => { const r = ev.reason, s = r && r.stack, w = where(s); const m = (r && r.message) || String(r);
+    if (/pointer ?lock|exited the lock|requestPointerLock|play\(\) request|user didn't interact|NotAllowedError/i.test(m)) return; // 마우스 잠금 · 자동 재생 거절은 정상
+    show('비동기 오류', '⚠️ 게임에 문제가 생겼어요', '처리 중에 오류가 났어요. <b>계속하기</b>로 이어서 해 보세요.', { msg: m, stack: s, area: w.area, fn: w.fn, chain: w.chain }); });
+  // ③ 그래픽(WebGL) 끊김
+  const cv = document.getElementById('c');
+  if (cv) { cv.addEventListener('webglcontextlost', ev => { ev.preventDefault(); show('그래픽 오류', '⚠️ 그래픽이 끊겼어요', '기기의 그래픽 장치가 잠시 멈췄어요 (메모리 부족, 다른 앱 전환 등). <b>처음부터 다시</b>를 누르면 대부분 해결돼요.', { msg: 'WebGL context lost', area: '3D 그래픽 (WebGL)', friendly: '그래픽 장치 연결이 끊김', fn: '' }); });
+    cv.addEventListener('webglcontextrestored', () => { const e = LOG.find(x => x.kind === '그래픽 오류'); if (e && shown === e) document.getElementById('ebLead').innerHTML += '<br><span style="color:#8fe3a9">그래픽이 다시 연결됐어요. 계속하기를 눌러 보세요.</span>'; }); }
+  // ④ 화면 멈춤 감지 (화면이 보이는데 5초 넘게 그려지지 않으면)
+  let lastFrame = 0, frozen = false; const raf = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = cb => raf(t => { lastFrame = performance.now(); if (frozen) { frozen = false; const e = LOG.find(x => x.kind === '멈춤'); if (e && shown === e) close(); } cb(t); });
+  document.addEventListener('visibilitychange', () => { lastFrame = performance.now(); });
+  setInterval(() => { if (!lastFrame || document.visibilityState !== 'visible' || frozen) return; if (performance.now() - lastFrame > 5000) setTimeout(() => { if (frozen || performance.now() - lastFrame < 5000 || document.visibilityState !== 'visible') return; frozen = true; // 잠깐 버벅인 건 무시하고, 정말 멈췄을 때만
+    show('멈춤', '⚠️ 게임이 멈춘 것 같아요', '5초 넘게 화면이 움직이지 않았어요. 잠깐 기다려도 그대로면 <b>처음부터 다시</b>를 눌러 주세요.', { msg: '화면이 5초 이상 갱신되지 않음', friendly: '화면 멈춤 (기기가 느리거나 오류로 그리기가 중단됨)', area: '매 프레임 화면 그리기', fn: 'loop' }); }, 1200); }, 1500);
+})();
+</script>
 <div id="vignette"></div>
 <div id="blood"></div>
 <div id="grain"></div>
@@ -2332,8 +2427,10 @@ function loop(now) {
       sky.intensity = 2.6 * k; L.style.opacity = 0.25; flashOutside(4); setTimeout(() => { sky.intensity = skyBase; L.style.opacity = 0; flashOutside(1); }, 90);
       setTimeout(() => { sky.intensity = 1.8 * k; L.style.opacity = 0.18; flashOutside(3); }, 180); setTimeout(() => { sky.intensity = skyBase; L.style.opacity = 0; flashOutside(1); }, 260); setTimeout(() => SFX.thunder(), 600 + Math.random() * 900); } }
   for (let i = updaters.length - 1; i >= 0; i--) { const u = updaters[i];
-    if (u.tw) { u.t += dt; const e = Math.min(1, u.t / u.dur); u.fn(e * e * (3 - 2 * e)); if (e >= 1) { updaters.splice(i, 1); u.done && u.done(); } }
-    else if (u.fn(dt) === true) updaters.splice(i, 1); }
+    try {
+      if (u.tw) { u.t += dt; const e = Math.min(1, u.t / u.dur); u.fn(e * e * (3 - 2 * e)); if (e >= 1) { updaters.splice(i, 1); u.done && u.done(); } }
+      else if (u.fn(dt) === true) updaters.splice(i, 1);
+    } catch (err) { updaters.splice(i, 1); setTimeout(() => { throw err; }); } } // 고장 난 움직임 하나만 빼고 게임은 계속 그린다 (오류는 알림창으로)
   if (active) { const h = pick(), lab = $('label');
     if (h) { lab.textContent = h.userData.label + (S.fallback ? '  (탭/클릭)' : '  (클릭)'); lab.style.opacity = 1; $('cross').classList.add('on'); } else { lab.style.opacity = 0; $('cross').classList.remove('on'); } }
   frameN++; renderer.shadowMap.needsUpdate = S.lightOn || frameN % 2 === 0;
@@ -2501,6 +2598,8 @@ window.MOBILE_KEYS=[["KeyQ", "🛴", "킥보드", "S.scoot"]];
   function pauseGame() { if (!S.started || S.escaped || S.modal) return; if (document.pointerLockElement) { document.exitPointerLock(); return; } S.paused = true; $('paused').classList.remove('hidden'); }
   const pp = document.querySelector('#paused .card p'); if (pp) pp.textContent = '계속하기 · ✕ · 빈 곳을 누르면 다시 시작해요';
   const resume = () => { $('paused').classList.add('hidden'); S.paused = false; lockPointer(); };
+  // 오류 알림창에서 쓰는 연결: 오류가 나면 게임을 멈추고, 보고서에 진행 상황을 적는다
+  window.NK = { pause: () => { try { pauseGame(); } catch (e) {} }, state: () => { let progress = ''; try { progress = Object.keys(F3).filter(k => F3[k] === true).join(', '); } catch (e) {} return { progress, mobile: isMob() }; } };
   $('resumeBtn').onclick = e => { e.stopPropagation(); resume(); };
 
   // ✕ button + tap outside for every popup that can be closed
