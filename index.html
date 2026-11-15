@@ -559,7 +559,7 @@ $('noteClose').onclick = e => { e.stopPropagation(); closeModal(); };
 // PC: 마우스 시점은 항상 '포인터 잠금'으로만 움직인다. 잠금이 풀리거나 실패하면 (Esc · 잘못된 클릭 · 창 밖 클릭)
 // 드래그 모드로 바꾸지 않고 '클릭하면 계속' 화면을 띄운 뒤, 다음 클릭에서 다시 잠근다.
 const isTouchDev = () => document.body.classList.contains('mobile') || matchMedia('(pointer: coarse)').matches;
-function lockFailed() { if (S.modal || !S.started || S.escaped) return; S.paused = true; $('paused').classList.remove('hidden'); }
+function lockFailed() { if (S.modal || !S.started || S.escaped || S.claw) return; S.paused = true; $('paused').classList.remove('hidden'); }
 function lockPointer() {
   if (isTouchDev() || !canvas.requestPointerLock) { S.fallback = true; S.paused = false; $('paused').classList.add('hidden'); return; }
   S.fallback = false;
@@ -575,7 +575,7 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('pointerlockchange', () => {
   S.locked = document.pointerLockElement === canvas;
   if (S.locked) { S.paused = false; $('paused').classList.add('hidden'); }
-  else if (!S.modal && S.started && !S.escaped && !S.fallback) { S.paused = true; $('paused').classList.remove('hidden'); }
+  else if (!S.modal && S.started && !S.escaped && !S.fallback && !S.claw) { S.paused = true; $('paused').classList.remove('hidden'); }
 });
 $('resumeBtn').onclick = e => { e.stopPropagation(); $('paused').classList.add('hidden'); lockPointer(); };
 $('hintBtn').onclick = e => { e.stopPropagation(); hint(); };
@@ -607,7 +607,7 @@ addEventListener('mousemove', e => {
   pitch = Math.max(-1.35, Math.min(1.35, pitch));
 });
 canvas.addEventListener('mousedown', e => {
-  if (!S.started || S.modal || S.escaped) return;
+  if (!S.started || S.modal || S.escaped || S.claw) return; // 인형뽑기 중엔 마우스로 화면 버튼을 누른다
   if (S.fallback) { drag = { x: e.clientX, y: e.clientY, moved: 0 }; return; }
   if (!S.locked) return lockPointer();
   doInteract();
@@ -2059,10 +2059,11 @@ function tryClaw() { if (!F3.toyOpen) return; if (F3.doll) return say('인형뽑
   S.claw = { busy: false }; S.lockMove = true; player.x = TOY.X0 + 2.55; player.z = 24; yaw = Math.PI / 2; pitch = -0.2; K.claw.position.set(-0.3, 1.85, 0.25);
   clawUI = document.createElement('div'); clawUI.style.cssText = 'position:fixed;bottom:16px;left:16px;z-index:25;display:grid;grid-template-columns:repeat(3,64px);gap:8px;align-items:center;justify-items:center';
   const B = (t, fnDown, fnUp, style = '') => { const b = document.createElement('button'); b.innerHTML = t; b.style.cssText = 'width:64px;height:56px;border-radius:14px;border:1px solid #aaa;background:rgba(30,10,30,.8);color:#fff;font:800 18px Malgun Gothic;touch-action:none;' + style; const dn = e => { e.preventDefault(); e.stopPropagation(); fnDown(); }, up = e => { e.preventDefault(); e.stopPropagation(); fnUp && fnUp(); }; b.addEventListener('pointerdown', dn); b.addEventListener('pointerup', up); b.addEventListener('pointerleave', up); b.addEventListener('pointercancel', up); return b; };
-  const stop = () => { clawDir.x = 0; clawDir.z = 0; };
+  const stop = () => { clawDir.x = 0; clawDir.z = 0; }; addEventListener('blur', stop, { once: true });
   clawUI.append(B('', () => {}, null, 'visibility:hidden'), B('▲', () => clawDir.z = -1, stop), B('✖', () => endClaw(), null, 'font-size:14px;background:rgba(40,40,40,.8)'), B('◀', () => clawDir.x = -1, stop), B('🎯', () => clawGrab(), null, 'background:#c41878;font-size:22px'), B('▶', () => clawDir.x = 1, stop), B('', () => {}, null, 'visibility:hidden'), B('▼', () => clawDir.z = 1, stop), B('', () => {}, null, 'visibility:hidden'));
-  document.body.appendChild(clawUI); say('코인을 넣었다. 띠리링♪ 집게를 <b>◀▶▲▼</b> (또는 WASD)로 움직이고 <b>🎯</b> (스페이스)로 내리자. 빨간 점이 집게 바로 아래다.', 5); }
-function endClaw() { if (!S.claw || S.claw.busy) return; clawUI && clawUI.remove(); clawUI = null; S.claw = null; S.lockMove = false; clawDir.x = clawDir.z = 0; player.x = TOY.X0 + 3.0; }
+  document.body.appendChild(clawUI); try { if (document.pointerLockElement) document.exitPointerLock(); } catch (e) {} S.paused = false; $('paused').classList.add('hidden');
+  say('코인을 넣었다. 띠리링♪ 집게를 <b>◀▶▲▼</b> 버튼 (PC는 <b>WASD</b> · 방향키도 OK)으로 움직이고 <b>🎯</b> (스페이스)로 내리자. 빨간 점이 집게 바로 아래다. 그만하기 <b>✖</b> / Q', 6); }
+function endClaw() { if (!S.claw || S.claw.busy) return; clawUI && clawUI.remove(); clawUI = null; S.claw = null; S.lockMove = false; clawDir.x = clawDir.z = 0; player.x = TOY.X0 + 3.0; setTimeout(() => { if (!S.modal && !S.escaped && !isTouchDev()) lockPointer(); }, 0); }
 function clawTick(dt) { if (!S.claw || !K.claw) { if (K.clawDot) { K.clawDot.position.set(K.claw.position.x, 1.13, K.claw.position.z); } return; } const c = K.claw;
   if (!S.claw.busy) { const kx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0), kz = (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0);
     const dx = clawDir.x || kx, dz = clawDir.z || kz; c.position.x = Math.max(-0.4, Math.min(0.4, c.position.x + dx * 0.32 * dt)); c.position.z = Math.max(-0.38, Math.min(0.38, c.position.z + dz * 0.32 * dt)); if ((dx || dz) && Math.random() < 0.15) tone(220, 0.04, 'square', 0.015); }
