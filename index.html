@@ -281,9 +281,14 @@ const CODES = (() => {
     C.roof = [R(0, 9), R(0, 9), R(0, 9), R(0, 9)]; C.tower = C.roof.join('');
     return C;
   };
-  let C = make(), tries = 0; const keys = ['booth', 'lost', 'safe', 'reg', 'locker', 'tower'];
-  while (last && tries++ < 20 && keys.some(k => C[k] === last[k])) C = make(); // 지난 게임과 같은 번호는 피한다
-  try { localStorage.setItem('nakwonCodes', JSON.stringify(Object.fromEntries(keys.map(k => [k, C[k]])))); } catch (e) {}
+  const keys = ['booth', 'lost', 'safe', 'reg', 'locker', 'tower'];
+  // 💾 이어하기 저장이 있으면 그 게임의 암호를 그대로 쓴다 (새로고침해도 번호가 안 바뀌게)
+  let kept = null; try { const sv = JSON.parse(localStorage.getItem('nakwonland_save_v1') || 'null'); const cf = JSON.parse(localStorage.getItem('nakwonCodesFull') || 'null'); if (sv && sv.v === 1 && sv.f && cf && keys.every(k => typeof cf[k] === 'string')) kept = cf; } catch (e) {}
+  let C;
+  if (kept) { C = kept; C.reused = true; }
+  else { C = make(); let tries = 0;
+    while (last && tries++ < 20 && keys.some(k => C[k] === last[k])) C = make(); // 지난 게임과 같은 번호는 피한다
+    try { localStorage.setItem('nakwonCodes', JSON.stringify(Object.fromEntries(keys.map(k => [k, C[k]])))); localStorage.setItem('nakwonCodesFull', JSON.stringify(C)); } catch (e) {} }
   C.won = n => n.toLocaleString('ko-KR');
   return C;
 })();
@@ -546,7 +551,7 @@ $('panelClose').onclick = e => { e.stopPropagation(); closeModal(); };
 
 // modal & pointer lock
 function openModal(id) {
-  S.modal = id; $(id).classList.remove('hidden');
+  relockTip(false); S.modal = id; $(id).classList.remove('hidden');
   if (id === 'keypad') { code = ''; padShow(false); $('padTitle').textContent = padCfg ? padCfg.title : ''; }
   if (document.pointerLockElement) document.exitPointerLock();
 }
@@ -556,26 +561,25 @@ function closeModal() {
 }
 $('padClose').onclick = e => { e.stopPropagation(); closeModal(); };
 $('noteClose').onclick = e => { e.stopPropagation(); closeModal(); };
-// PC: 마우스 시점은 항상 '포인터 잠금'으로만 움직인다. 잠금이 풀리거나 실패하면 (Esc · 잘못된 클릭 · 창 밖 클릭)
-// 드래그 모드로 바꾸지 않고 '클릭하면 계속' 화면을 띄운 뒤, 다음 클릭에서 다시 잠근다.
-const isTouchDev = () => document.body.classList.contains('mobile') || matchMedia('(pointer: coarse)').matches;
-function lockFailed() { if (S.modal || !S.started || S.escaped || S.claw) return; S.paused = true; $('paused').classList.remove('hidden'); }
+const TOUCHY = (window.matchMedia && matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches) || !canvas.requestPointerLock;
+const isTouchDev = () => document.body.classList.contains('mobile') || TOUCHY;
+function relockTip(on) { let d = $('relockTip'); if (!d) { d = document.createElement('div'); d.id = 'relockTip'; d.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);padding:12px 18px;border-radius:12px;background:rgba(0,0,0,.72);color:#fff;font:700 15px "Malgun Gothic",sans-serif;z-index:7;pointer-events:none;text-align:center;line-height:1.6;display:none'; d.innerHTML = '🖱 화면을 한 번 <b>클릭</b>하면 시점 조작이 다시 켜져요<br><span style="font-size:12px;opacity:.75">(마우스 버튼을 누른 채 끌어도 돌릴 수 있어요)</span>'; document.body.appendChild(d); } d.style.display = on ? 'block' : 'none'; }
+function lockFail() { if (TOUCHY) { S.fallback = true; S.paused = false; $('paused').classList.add('hidden'); return; } if (S.modal || S.escaped || !S.started || S.claw) return; S.relock = true; S.paused = false; $('paused').classList.add('hidden'); relockTip(true); }
 function lockPointer() {
   if (isTouchDev() || !canvas.requestPointerLock) { S.fallback = true; S.paused = false; $('paused').classList.add('hidden'); return; }
   S.fallback = false;
   if (document.pointerLockElement === canvas) { S.paused = false; $('paused').classList.add('hidden'); return; }
   try {
-    const p = canvas.requestPointerLock();
-    if (p && p.catch) p.catch(() => lockFailed());
-  } catch (e) { lockFailed(); }
-  setTimeout(() => { if (document.pointerLockElement !== canvas && !S.modal) lockFailed(); }, 600);
+    const p = canvas.requestPointerLock && canvas.requestPointerLock();
+    if (p && p.catch) p.catch(() => setTimeout(() => { if (!document.pointerLockElement) lockFail(); }, 50));
+  } catch (e) { lockFail(); }
+  setTimeout(() => { if (!document.pointerLockElement && !S.modal) lockFail(); }, 700);
 }
-document.addEventListener('pointerlockerror', () => { if (!isTouchDev()) lockFailed(); });
-canvas.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('pointerlockerror', () => { if (!document.pointerLockElement) lockFail(); });
 document.addEventListener('pointerlockchange', () => {
   S.locked = document.pointerLockElement === canvas;
-  if (S.locked) { S.paused = false; $('paused').classList.add('hidden'); }
-  else if (!S.modal && S.started && !S.escaped && !S.fallback && !S.claw) { S.paused = true; $('paused').classList.remove('hidden'); }
+  if (S.locked) { S.paused = false; S.relock = false; relockTip(false); $('paused').classList.add('hidden'); }
+  else if (!S.modal && S.started && !S.escaped && !S.fallback && !S.claw) { S.paused = true; $('paused').classList.remove('hidden'); relockTip(false); }
 });
 $('resumeBtn').onclick = e => { e.stopPropagation(); $('paused').classList.add('hidden'); lockPointer(); };
 $('hintBtn').onclick = e => { e.stopPropagation(); hint(); };
@@ -602,17 +606,18 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => keys[e.code] = false);
 addEventListener('mousemove', e => {
-  if (S.locked) { const mx = e.movementX, my = e.movementY; if (Math.abs(mx) > 220 || Math.abs(my) > 220) return; yaw -= mx * 0.0022; pitch -= my * 0.0022; } // 순간 튐(브라우저 버그) 무시
-  else if (S.fallback && drag) { yaw -= (e.clientX - drag.x) * 0.004; pitch -= (e.clientY - drag.y) * 0.004; drag.moved += Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y); drag.x = e.clientX; drag.y = e.clientY; }
+  if (S.locked) { const mx = e.movementX, my = e.movementY; if (Math.abs(mx) > 220 || Math.abs(my) > 220) return; yaw -= mx * 0.0022; pitch -= my * 0.0022; }
+  else if ((S.fallback || S.relock || !S.locked) && drag) { yaw -= (e.clientX - drag.x) * 0.004; pitch -= (e.clientY - drag.y) * 0.004; drag.moved += Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y); drag.x = e.clientX; drag.y = e.clientY; }
   pitch = Math.max(-1.35, Math.min(1.35, pitch));
 });
 canvas.addEventListener('mousedown', e => {
   if (!S.started || S.modal || S.escaped || S.claw) return; // 인형뽑기 중엔 마우스로 화면 버튼을 누른다
   if (S.fallback) { drag = { x: e.clientX, y: e.clientY, moved: 0 }; return; }
-  if (!S.locked) return lockPointer();
+  if (!S.locked) { drag = { x: e.clientX, y: e.clientY, moved: 0, relock: true }; S.paused = false; $('paused').classList.add('hidden'); return lockPointer(); }
   doInteract();
 });
-addEventListener('mouseup', () => { if (drag && drag.moved < 6) doInteract(); drag = null; });
+addEventListener('mouseup', () => { if (drag && drag.moved < 6 && !drag.relock && S.fallback) doInteract(); drag = null; });
+addEventListener('blur', () => { drag = null; for (const k in keys) keys[k] = false; });
 canvas.addEventListener('touchstart', e => {
   if (!S.started || S.modal) return; S.fallback = true; S.paused = false;
   walkTouch = e.touches.length >= 2; const t = e.touches[0]; touch = { x: t.clientX, y: t.clientY, moved: 0 };
@@ -2397,6 +2402,60 @@ function photoStrip() { const c = document.createElement('canvas'); c.width = 20
 // clicks during the toy-shop mini games
 const _di0 = doInteract; doInteract = function () { if (S.shoot) return shootOnce(); if (S.claw) return; return _di0(); };
 // =====================================================================
+// 💾 save / continue — 창을 닫았다가 다시 들어와도 이어하기 (localStorage)
+// =====================================================================
+const SAVE_KEY = 'nakwonland_save_v1';
+function saveLoad() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return d && d.v === 1 && d.f ? d : null; } catch (e) { return null; } }
+function saveClear() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { } }
+function saveSafe() { return S.started && !S.escaped && !F3.finale && !RIDE.on && !FW.on && !CL.on && !S.hidden && !S.lockMove && !S.shoot && !S.claw && !F3.shooting && !K.caroManual && !K.fwManual && (player.h || 0) < 1 && wakeT >= 0; }
+function saveNow() { if (!saveSafe()) return false; const f = {}; for (const k in F3) if (k !== 'clues') f[k] = F3[k];
+  const d = { v: 1, f, clues: [...F3.clues], items: Object.entries(ITEMS).map(([id, o]) => [id, o.icon, o.name, o.desc]), x: +player.x.toFixed(2), z: +player.z.toFixed(2), yaw: +yaw.toFixed(3), obj: $('objective').textContent,
+    cl: CL.done, caught: CL.caught || 0, caro: !!K.caroRun, caroY: K.caro ? K.caro.rotation.y % 6.2832 : 0, vik: K.vikRun, fwRot: K.fwRot, fwSpd: K.fwSpd, light: !!S.lightOn, el: Math.round(performance.now() - S.t0), at: Date.now() };
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); } catch (e) { return false; } return true; }
+function saveApply(d) { const f = d.f; Object.assign(F3, f); F3.clues = new Set(d.clues || []); F3.shooting = false; F3.atTower = false;
+  (d.items || []).forEach(([id, ic, n, ds]) => addItem(id, ic, n, ds, true)); CL.done = d.cl || {}; CL.caught = d.caught || 0;
+  if (f.torch) { K.trunk.rotation.x = -1.2; S.hasLight = true; S.battery = true; }
+  if (f.booth) K.dBooth.unlocked = true;
+  if (f.ticket) K.tmScr.color.setHex(0x3aff8a);
+  if (f.entered) { removeCollider(K.turnCol); K.turns.forEach(t => t.rotation.x = 2.094);
+    if (f.welcomed) colliders.push({ x0: -3, x1: 3, z0: 45.85, z1: 46.15, y0: 0, y1: 1.1 });
+    else every(() => { if (player.z < 44.6) { colliders.push({ x0: -3, x1: 3, z0: 45.85, z1: 46.15, y0: 0, y1: 1.1 }); welcome(); return true; } }); }
+  if (f.welcomed) { K.welcome.userData.mat.color.setScalar(1); K.welcomeBulbs.off = false; }
+  K.caroRun = d.caro; K.caroSpd = d.caro ? 0.32 : 0; if (K.caro) K.caro.rotation.y = d.caroY || 0;
+  if (f.ops) K.dOps.unlocked = true;
+  if (f.safe) { K.safeDoor.rotation.y = -1.6; K.safeKey.visible = false; }
+  if (f.food) K.dFood.unlocked = true;
+  if (f.card) K.regDrawer.position.z = 0.25;
+  if (f.staff) { K.readerL.material.color.setHex(0x2aff5a); K.dStaff.unlocked = true; }
+  if (f.bKey) { K.lockSC.rotation.y = -1.6; K.lockSCKey.visible = false; }
+  if (f.panelOK) { K.ropes.children.forEach(m => { if (m.geometry && m.geometry.parameters && m.geometry.parameters.radiusTop === 0.015) m.visible = false; }); K.flame.material.opacity = 0.9; K.flame.scale.set(1, 1, 1); K.burnL.intensity = 1.6; }
+  if (f.vKey) { K.tboxLid.rotation.x = -1.6; K.tboxKey.visible = false; }
+  if (typeof d.vik === 'boolean') { K.vikRun = d.vik; if (!d.vik) K.vikA = 0; }
+  if (f.fwKey) { K.pin.visible = false; K.flKey.visible = false; }
+  if (typeof d.fwRot === 'number') K.fwRot = d.fwRot; if (typeof d.fwSpd === 'number') K.fwSpd = d.fwSpd;
+  if (f.token) K.fwToken.visible = false;
+  if (f.flKey) K.boothScr.color.setHex(0x3a4a5a);
+  if (f.chest) K.chestLid.rotation.x = -1.5;
+  if (f.toyOpen) { K.shutter.scale.y = 0.05; removeCollider(K.shutterCol); K.toyL.intensity = 0.9; }
+  if (f.doll) K.clawDoll.visible = false;
+  player.x = d.x; player.z = d.z; player.h = 0; yaw = d.yaw || 0; pitch = -0.05; S.lightOn = !!(d.light && S.hasLight);
+  if (d.obj) $('objective').textContent = d.obj; S.t0 = S.tc = performance.now() - (d.el || 0); }
+function saveAgo(t) { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? '방금 전' : m < 60 ? m + '분 전' : m < 1440 ? Math.round(m / 60) + '시간 전' : Math.round(m / 1440) + '일 전'; }
+function saveBoot() {
+  // autosave: every 3 s while safe, and whenever the tab is hidden / closed
+  let acc = 0; every(dt => { acc += dt; if (acc > 3) { acc = 0; saveNow(); } });
+  const flush = () => { saveNow(); }; addEventListener('pagehide', flush); addEventListener('beforeunload', flush); document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+  const _esc = escape; escape = function () { saveClear(); _esc(); };
+  const d = saveLoad(); const sb = $('startBtn'); if (!d || !sb) return;
+  const cont = document.createElement('button'); cont.className = 'btn'; cont.id = 'contBtn'; cont.style.cssText = 'background:linear-gradient(#ff7ab0,#c83a7a);color:#fff;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto';
+  cont.innerHTML = '▶ 이어하기 <small style="display:block;font-size:12px;font-weight:600;opacity:.9;margin-top:3px">' + saveAgo(d.at) + ' 저장 · ' + (d.obj || '').replace(/[<>&]/g, '').slice(0, 34) + '</small>';
+  sb.parentNode.insertBefore(cont, sb); sb.textContent = '처음부터 다시 시작'; sb.style.opacity = '.8';
+  const ob = sb.onclick; sb.onclick = e => { saveClear(); if (CODES.reused) { e.stopPropagation(); try { localStorage.removeItem('nakwonCodesFull'); } catch (er) { } location.reload(); return; } ob(e); };
+  cont.onclick = e => { e.stopPropagation(); initAudio(); $('start').classList.add('hidden'); S.started = true; S.lightning = false; wakeT = 2.4; saveApply(d); lockPointer();
+    try { cont.dispatchEvent(new CustomEvent('cz-continue')); } catch (er) { }
+    setTimeout(() => say('💾 <b>이어서 시작합니다.</b> 마지막으로 저장된 곳이에요. 소지품(<b>I</b>)과 목표를 확인해 보자.', 4), 600); };
+}
+// =====================================================================
 // main — hints, endings, loop, boot
 // =====================================================================
 let rainGain = null;
@@ -2449,6 +2508,7 @@ $('startBtn').onclick = e => {
   setTimeout(() => { say('…차 문을 닫았다. 텅 빈 주차장. 철조망 너머로 <b>낙원랜드</b>의 놀이기구 실루엣이 보인다.', 4.5); tone(196, 1.6, 'sine', 0.03); }, 1400);
   setTimeout(() => { say('2006년 5월 5일, 여기서 동생 <b>하나</b>가 사라졌다. 20년 만에 다시 왔다. 손전등은… <b>트렁크</b>에 있다.', 5.5); objective('자동차 트렁크에서 손전등을 꺼내자'); }, 6500);
 };
+saveBoot();
 /*MOBILE*/
 window.MOBILE_KEYS=[["KeyQ", "🛴", "킥보드", "S.scoot"]];
 // ===== 모바일 터치 조작 (공용, 간소화) =====
